@@ -1,0 +1,68 @@
+import asyncio
+import json
+import os
+import platform
+import random
+import sqlite3
+import sys
+from contextlib import closing
+
+from discord import Member
+import discord
+from discord import Interaction
+from discord.ext import commands, tasks
+from discord.ext.commands import Bot, Context
+
+import exceptions
+import keep_alive
+
+if not os.path.isfile("config.json"):
+    sys.exit("Can't find the config.json, aborting...")
+else:
+    with open("config.json") as file:
+        config = json.load(file)
+class MyBot(Bot):
+    def __init__(self):
+        intents = discord.Intents.all()
+        intents.message_content = True
+        intents.members = True
+        application_id = 1025780893161357463
+        super().__init__(command_prefix = config['prefix'], intents = intents, application_id = application_id)
+    async def setup_hook(self):
+        await self.tree.sync()
+bot = MyBot()
+
+#bot.config = config
+
+@bot.event
+async def on_ready():
+  print(f"Logged in as {bot.user.name}")
+  print(f"discord API version: {discord.__version__}")
+  print("Enjoy your bot!")
+
+@bot.event
+async def on_message(message: discord.Message):
+  if message.author == bot.user or message.author.bot:
+    return
+  await bot.process_commands(message)
+
+@bot.event
+async def on_member_join(member):
+    await member.guild.system_channel.send(f"Tonto tontisimo que eres vete a la mierda <@{str(member.id)}>")
+
+async def load_cogs():
+  for file in os.listdir(f"./cogs"):
+    if file.endswith(".py"):
+      extension = file[:-3]
+      try:
+        await bot.load_extension(f"cogs.{extension}")
+        print(f"Loaded extension '{extension}'")
+      except Exception as e:
+        exception = f"{type(e).__name__}: {e}"
+        print(f"Failed to load extension {extension}\n{exception}")
+try:
+    asyncio.run(load_cogs())
+    bot.run(config['token'])
+except Exception as e:
+    print(f"//!\\\\ Error loading the bot. Is your token valid? {type(e).__name__} : {e}")
+
