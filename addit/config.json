@@ -1,0 +1,8 @@
+{
+  "prefix": "PREFIX_HERE",
+  "token": "TOKEN_HERE",
+  "permissions": "YOUR_BOT_PERMISSIONS_HERE",
+  "application_id": "YOUR_APPLICATION_ID_HERE",
+  "owners": [
+  ]
+}
