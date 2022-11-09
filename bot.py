@@ -13,6 +13,8 @@ from discord import Interaction
 from discord.ext import commands, tasks
 from discord.ext.commands import Bot, Context
 
+import aiosqlite
+
 import exceptions
 import keep_alive
 
@@ -34,6 +36,11 @@ bot = MyBot()
 
 #bot.config = config
 
+async def init_db():
+    async with aiosqlite.connect("database/database.db") as db:
+        with open("database/schema.sql") as file:
+            await db.executescript(file.read())
+        await db.commit()
 @bot.event
 async def on_ready():
   print(f"Logged in as {bot.user.name}")
@@ -42,9 +49,9 @@ async def on_ready():
 
 @bot.event
 async def on_message(message: discord.Message):
-  if message.author == bot.user or message.author.bot:
-    return
-  await bot.process_commands(message)
+    if message.author == bot.user or message.author.bot:
+        return
+    await bot.process_commands(message)
 
 @bot.event
 async def on_member_join(member):

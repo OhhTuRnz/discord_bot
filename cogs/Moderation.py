@@ -63,5 +63,12 @@ class Moderation(commands.Cog, name = "Moderation"):
                 color=0xFCFC07
             )
         await context.send(embed=embed)
+
+    @commands.hybrid_command(name="Blacklist",
+                             description="Blacklists a user from this bot")
+    @commands.has_permissions(administrator = True)
+    @app_commands.describe(user="Who do you want to blacklist", reason= "The reason for it")
+    async def blacklist(self, context: Context, user: discord.User, *, nick: str):
+        pass
 async def setup(bot):
     await bot.add_cog(Moderation(bot))

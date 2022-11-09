@@ -1,1 +1,3 @@
 /config.json
+_pycache_/
+*.db
