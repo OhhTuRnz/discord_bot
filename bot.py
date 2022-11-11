@@ -36,11 +36,12 @@ bot = MyBot()
 
 #bot.config = config
 
-async def init_db():
-    async with aiosqlite.connect("database/database.db") as db:
-        with open("database/schema.sql") as file:
-            await db.executescript(file.read())
-        await db.commit()
+# Just in case you want to load an schema into the database
+#async def init_db():
+#    async with aiosqlite.connect("database/database.db") as db:
+#        with open("database/schema.sql") as file:
+#            await db.executescript(file.read())
+#        await db.commit()
 @bot.event
 async def on_ready():
   print(f"Logged in as {bot.user.name}")
