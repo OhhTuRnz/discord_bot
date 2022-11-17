@@ -11,13 +11,16 @@ class Status(discord.ui.View):
         self.value = None
 
     @discord.ui.button(label="Work", style=discord.ButtonStyle.blurple)
-    async def work(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def work(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.value = "Working"
+        button.label = "Done"
+        button.disabled = True
         self.stop()
 
     @discord.ui.button(label="NoWork", style=discord.ButtonStyle.blurple)
-    async def nowork(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def nowork(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.value = "Out of work"
+        button.disabled = True
         self.stop()
 
 class Work(commands.Cog):
