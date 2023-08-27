@@ -22,13 +22,14 @@ class TicTacToeButton(discord.ui.Button['TicTacToe']):
     # This is part of the "meat" of the game logic
     async def callback(self, interaction: discord.Interaction):
 
-        global player1
-        global player2
-
         content = None
 
         assert self.view is not None
         view: TicTacToe = self.view
+
+        player1 = view.player1
+        player2 = view.player2
+
         state = view.board[self.y][self.x]
         if state in (view.X, view.O):
             return
@@ -81,9 +82,14 @@ class TicTacToe(discord.ui.View):
     O = 1
     Tie = 2
 
-    def __init__(self):
+    player1 = None
+    player2 = None
+
+    def __init__(self, player1, player2):
         super().__init__()
         self.current_player = self.X
+        self.player1 = player1
+        self.player2 = player2
         self.board = [
             [0, 0, 0],
             [0, 0, 0],
@@ -143,13 +149,11 @@ class Games(commands.Cog):
         description="play tictactoe"
     )
     async def tictactoe(self, context: Context, enemy: discord.Member):
-        global player1
-        global player2
 
         player1 = context.author.id
         player2 = enemy.id
 
-        await context.send(f'Tic Tac Toe: <@{player1}>(X) goes first', view=TicTacToe())
+        await context.send(f'Tic Tac Toe: <@{player1}>(X) goes first', view=TicTacToe(player1, player2))
 
 async def setup(bot):
     await bot.add_cog(Games(bot))
