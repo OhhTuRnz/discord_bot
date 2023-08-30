@@ -33,7 +33,7 @@ class Moderation(commands.Cog, name = "Moderation"):
                         value= reason
                     )
                     await member.kick(reason= reason)
-                    await member.send(f"Bro did u know this boi {context.author} has kicked u wtf he told me it was cuz this reason: {reason}")
+                    await member.send(f"Bro did u know this boi {context.author} has kicked u? Just sayin' that he told me it was cuz this reason: {reason}")
             except Exception:
                 await context.send("There was an unexpected error")
         else:
@@ -51,12 +51,12 @@ class Moderation(commands.Cog, name = "Moderation"):
         member = await context.guild.fetch_member(user.id)
         if context.message.author.guild_permissions.manage_nicknames:
             try:
-                await member.edit(nick = nick)
                 embed = discord.Embed(
                     title="Succesfully changed user's nickname",
                     description=f"Say hi <@{member.id}>",
                     color=0xFCFC07
                 )
+                await member.edit(nick = nick)
             except Exception:
                 await context.send("There was an unexpected error")
         else:
