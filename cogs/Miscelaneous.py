@@ -14,7 +14,7 @@ class Miscelaneous(commands.Cog, name = "Misc"):
         description="The bot prints a random quote from his"
     )
     async def get_my_quotes(self, context: Context):
-        data = random.choice(json.load(open('Spanish_Quotes.json', 'r', encoding='UTF-8')))
+        data = random.choice(json.load(open('../resources/Spanish_Quotes.json', 'r', encoding='UTF-8')))
         unk = "unknown"
         quote = f"{data['quote']} - {unk if data['from'] == '' else data['from']}"
         await context.send(quote)
