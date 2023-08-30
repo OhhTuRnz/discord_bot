@@ -65,3 +65,20 @@ async def add_user_to_blacklist(user_id: int, server_id: int, reason: str) -> in
         async with rows as cursor:
             result = await cursor.fetchone()
             return result[0] if result is not None else 0
+
+async def parse_users_from_guild(users: list, server_id: int) -> int:
+    """
+        :param users: list of users to be added to the database
+        :param server_id: integer representing the server id
+        :return: epoch time of the last user addition
+    """
+    today = date.today().strftime("%d/%m/%Y")
+    async with aiosqlite.connect("../discord.db") as db:
+        for user in users:
+            await db.execute("INSERT INTO User(Id, created_at) VALUES (?, ?)", (user.id, today))
+            await db.execute("INSERT INTO user_server(User_Id, Server_Id) VALUES (?, ?)", (user.id, server_id))
+        await db.commit()
+        rows = await db.execute("SELECT COUNT(*) FROM User")
+        async with rows as cursor:
+            result = await cursor.fetchone()
+            return result[0] if result is not None else 0
