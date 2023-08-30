@@ -49,7 +49,7 @@ class Moderation(commands.Cog, name = "Moderation"):
         member = await context.guild.fetch_member(user.id)
         if context.message.author.guild_permissions.manage_nicknames:
             try:
-                member.edit(nick = nick)
+                await member.edit(nick = nick)
                 embed = discord.Embed(
                     title="Succesfully changed user's nickname",
                     description=f"Say hi <@{member.id}>",
