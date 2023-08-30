@@ -3,6 +3,8 @@ from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
 
+import aider.db_parser as db_parser
+
 class Moderation(commands.Cog, name = "Moderation"):
     def __init__(self, bot):
         self.bot = bot
@@ -69,6 +71,13 @@ class Moderation(commands.Cog, name = "Moderation"):
     @commands.has_permissions(administrator = True)
     @app_commands.describe(user="Who do you want to blacklist", reason= "The reason for it")
     async def blacklist(self, context: Context, user: discord.User, *, reason: str):
-        pass
+        # function that uses the blacklist function from /aider/check.py to add the user to the blacklist
+        user_id = user.id
+
+        try:
+            await db_parser.add_user_to_blacklist(user_id = user_id, reason = reason, server_id = context.guild.id)
+            await context.send(f"Blacklisted <@{user.id}> for {reason}")
+        except Exception:
+            await context.send("There was an unexpected error")
 async def setup(bot):
     await bot.add_cog(Moderation(bot))

@@ -47,7 +47,7 @@ async def is_blacklisted(user_id: int) -> bool:
     :return: True if the user is blacklisted, False if not.
     """
     async with aiosqlite.connect("../discord.db") as db:
-        async with db.execute("SELECT Blacklist_id FROM User WHERE Id=?", (user_id,)) as cursor:
+        async with db.execute("SELECT 1 FROM Blacklist WHERE user_id = ?", (user_id,)) as cursor:
             result = await cursor.fetchone()
             return result is not None
 
@@ -59,26 +59,37 @@ async def add_user_to_blacklist(user_id: int, server_id: int, reason: str) -> in
     """
     today = date.today().strftime("%d/%m/%Y")
     async with aiosqlite.connect("../discord.db") as db:
-        await db.execute("INSERT INTO Blacklist(User_Id, created_at, Server_Id) VALUES (?, ?, ?)", (user_id, today, server_id))
+        if(reason):
+            await db.execute("INSERT INTO Blacklist(user_id, created_at, server_id) VALUES (?, ?, ?)", (user_id, today, server_id))
+        else:
+            await db.execute("INSERT INTO Blacklist(user_id, created_at, server_id, reason) VALUES (?, ?, ?, ?)", (user_id, today, server_id, reason))
         await db.commit()
-        rows = await db.execute("SELECT COUNT(*) FROM blacklist")
+        rows = await db.execute("SELECT COUNT(*) FROM Blacklist")
         async with rows as cursor:
             result = await cursor.fetchone()
             return result[0] if result is not None else 0
 
-async def parse_users_from_guild(users: list, server_id: int) -> int:
+async def parse_users_from_guild(users: dict, server_id: int, owner_id: int) -> int:
     """
-        :param users: list of users to be added to the database
+        :param users: dict of users to be added and their role to the database
         :param server_id: integer representing the server id
         :return: epoch time of the last user addition
     """
     today = date.today().strftime("%d/%m/%Y")
     async with aiosqlite.connect("../discord.db") as db:
-        for user in users:
-            await db.execute("INSERT INTO User(Id, created_at) VALUES (?, ?)", (user.id, today))
-            await db.execute("INSERT INTO user_server(User_Id, Server_Id) VALUES (?, ?)", (user.id, server_id))
-        await db.commit()
-        rows = await db.execute("SELECT COUNT(*) FROM User")
-        async with rows as cursor:
+        async with db.execute("SELECT 1 FROM user_server WHERE Server_Id=?", (server_id)) as cursor:
             result = await cursor.fetchone()
-            return result[0] if result is not None else 0
+            if result is not None:
+                for user, role in users:
+                    await db.execute("INSERT INTO server(ID, owner) VALUES (?, ?)", (server_id, owner_id))
+                    await db.execute("INSERT INTO User(ID, created_at) VALUES (?, ?)", (user.id, today))
+                    await db.execute("INSERT INTO user_server(User_Id, Server_Id) VALUES (?, ?)", (user.id, server_id, role))
+            else:
+                for user, role in users:
+                    await db.execute("INSERT INTO User(Id, created_at) VALUES (?, ?)", (user.id, today))
+                    await db.execute("INSERT INTO user_server(User_Id, Server_Id) VALUES (?, ?)", (user.id, server_id, role))
+            await db.commit()
+            rows = await db.execute("SELECT COUNT(*) FROM user_server WHERE server_id = ?", (server_id,))
+            async with rows as cursor:
+                result = await cursor.fetchone()
+                return result[0] if result is not None else 0

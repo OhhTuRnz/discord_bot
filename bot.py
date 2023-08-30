@@ -28,7 +28,7 @@ class MyBot(Bot):
         intents = discord.Intents.all()
         intents.message_content = True
         intents.members = True
-        application_id = 1025780893161357463
+        application_id = config['application_id']
         super().__init__(command_prefix = config['prefix'], intents = intents, application_id = application_id)
     async def setup_hook(self):
         await self.tree.sync()
