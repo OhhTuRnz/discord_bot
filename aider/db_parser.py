@@ -58,11 +58,11 @@ async def add_user_to_blacklist(user_id: int, server_id: int, reason: str) -> in
     :param user_id: The ID of the user that should be added into the blacklist.
     """
     today = date.today().strftime("%d/%m/%Y")
-    async with aiosqlite.connect("../discord.db") as db:
+    async with aiosqlite.connect("./aider/database.db") as db:
         if(reason):
-            await db.execute("INSERT INTO Blacklist(user_id, created_at, server_id) VALUES (?, ?, ?)", (user_id, today, server_id))
+            await db.execute("INSERT INTO Blacklist VALUES (NULL, ?, ?, ?, ?)", (server_id, user_id, today, reason))
         else:
-            await db.execute("INSERT INTO Blacklist(user_id, created_at, server_id, reason) VALUES (?, ?, ?, ?)", (user_id, today, server_id, reason))
+            await db.execute("INSERT INTO Blacklist VALUES (NULL, ?, ?, ?, NULL)", (server_id, user_id, today))
         await db.commit()
         rows = await db.execute("SELECT COUNT(*) FROM Blacklist")
         async with rows as cursor:
