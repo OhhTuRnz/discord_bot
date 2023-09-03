@@ -18,6 +18,8 @@ import aiosqlite
 import exceptions
 import keep_alive
 
+from aider import db_parser as db
+
 if not os.path.isfile("config.json"):
     sys.exit("Can't find the config.json, aborting...")
 else:
@@ -56,6 +58,7 @@ async def on_message(message: discord.Message):
 
 @bot.event
 async def on_member_join(member):
+    await db.parse_users_from_guild({member : member.role}, member.guild.id, member.guild.owner_id)
     await member.guild.system_channel.send(f"Tonto tontisimo que eres vete a la mierda <@{str(member.id)}>")
 
 async def load_cogs():
