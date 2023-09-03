@@ -83,20 +83,29 @@ async def parse_users_from_guild(users: dict, server_id: int, owner_id: int) -> 
         :param server_id: integer representing the server id
         :return: epoch time of the last user addition
     """
-    today = date.today().strftime("%d/%m/%Y")
     async with aiosqlite.connect("../aider/database.db") as db:
-        if (await server_exists(server_id)):
-            await insert_users(users, server_id, db)
+        users = await purge_existing(users, server_id, db)
+        if (users):
+            if(server_exists(server_id)):
+                await insert_users(users, server_id, db)
+            else:
+                await db.execute("INSERT INTO server(ID, owner_id) VALUES (?, ?)", (server_id, owner_id))
+                await insert_users(users, server_id, db)
+            await db.commit()
+            rows = await db.execute("SELECT COUNT(*) FROM user_server WHERE server_id = ?", (server_id,))
+            async with rows as cursor:
+                result = await cursor.fetchone()
+                return result[0] if result is not None else 0
         else:
-            await db.execute("INSERT INTO server(ID, owner_id) VALUES (?, ?)", (server_id, owner_id))
-            await insert_users(users, server_id, db)
-        await db.commit()
-        rows = await db.execute("SELECT COUNT(*) FROM user_server WHERE server_id = ?", (server_id,))
-        async with rows as cursor:
-            result = await cursor.fetchone()
-            return result[0] if result is not None else 0
+            return 0
 
 async def insert_users(users : dict, server_id : int, db):
     for user, role in users.items():
-        await db.execute("INSERT INTO User(ID, name) VALUES (?, ?)", (user.id, user.name))
-        await db.execute("INSERT INTO user_server(user_id, server_id, role) VALUES (?, ?, ?)", (user.id, server_id, role))
+            await db.execute("INSERT INTO User(ID, name) VALUES (?, ?)", (user.id, user.name))
+            await db.execute("INSERT INTO user_server(user_id, server_id, role) VALUES (?, ?, ?)", (user.id, server_id, role))
+
+async def purge_existing(users : dict, server_id : int, db):
+    async with db.execute("SELECT user_id FROM user_server WHERE server_id=?", (server_id,)) as cursor:
+        existing = await cursor.fetchall()
+        users = {key: value for key, value in users.items() if key.id not in existing[0]}
+    return users

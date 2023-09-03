@@ -79,5 +79,19 @@ class Moderation(commands.Cog, name = "Moderation"):
             await context.send(f"Blacklisted <@{user.id}> for {reason}")
         except Exception:
             await context.send("There was an unexpected error")
+
+    @commands.hybrid_command(name="unblacklist",
+                             description="Unblacklists a user from this bot")
+    @commands.has_permissions(administrator=True)
+    @app_commands.describe(user="Who do you want to unblacklist")
+    async def blacklist(self, context: Context, user: discord.User):
+        # function that uses the blacklist function from /aider/check.py to add the user to the blacklist
+        user_id = user.id
+
+        try:
+            await db_parser.delete_user_from_blacklist(user_id=user_id, server_id=context.guild.id)
+            await context.send(f"Unblacklisted <@{user.id}>")
+        except Exception:
+            await context.send("There was an unexpected error")
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
