@@ -1,5 +1,5 @@
 """"
-Copyright © Krypton 2022 - https://github.com/kkrypt0nn (https://krypton.ninja)
+Based on Krypton - https://github.com/kkrypt0nn (https://krypton.ninja)
 
 """
 

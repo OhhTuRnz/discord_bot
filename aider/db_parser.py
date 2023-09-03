@@ -100,6 +100,12 @@ async def parse_users_from_guild(users: dict, server_id: int, owner_id: int) -> 
             return 0
 
 async def insert_users(users : dict, server_id : int, db):
+    """
+        :param users: users that are part of the guild
+        :param server_id: id of the guild we are parsing
+        :param db: Database connection
+        :return:
+    """
     for user, role in users.items():
             await db.execute("INSERT INTO User(ID, name) VALUES (?, ?)", (user.id, user.name))
             await db.execute("INSERT INTO user_server(user_id, server_id, role) VALUES (?, ?, ?)", (user.id, server_id, role))
