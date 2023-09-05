@@ -18,6 +18,8 @@ import aiosqlite
 import exceptions
 import keep_alive
 
+from aider import db_parser as db
+
 if not os.path.isfile("config.json"):
     sys.exit("Can't find the config.json, aborting...")
 else:
@@ -28,7 +30,7 @@ class MyBot(Bot):
         intents = discord.Intents.all()
         intents.message_content = True
         intents.members = True
-        application_id = 1025780893161357463
+        application_id = config['application_id']
         super().__init__(command_prefix = config['prefix'], intents = intents, application_id = application_id)
     async def setup_hook(self):
         await self.tree.sync()
@@ -56,6 +58,7 @@ async def on_message(message: discord.Message):
 
 @bot.event
 async def on_member_join(member):
+    await db.parse_users_from_guild({member : member.role}, member.guild.id, member.guild.owner_id)
     await member.guild.system_channel.send(f"Tonto tontisimo que eres vete a la mierda <@{str(member.id)}>")
 
 async def load_cogs():
