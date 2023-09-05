@@ -84,7 +84,7 @@ class Moderation(commands.Cog, name = "Moderation"):
                              description="Unblacklists a user from this bot")
     @commands.has_permissions(administrator=True)
     @app_commands.describe(user="Who do you want to unblacklist")
-    async def blacklist(self, context: Context, user: discord.User):
+    async def unblacklist(self, context: Context, user: discord.User):
         # function that uses the blacklist function from /aider/check.py to add the user to the blacklist
         user_id = user.id
 

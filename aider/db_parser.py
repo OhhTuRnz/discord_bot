@@ -77,8 +77,22 @@ async def add_user_to_blacklist(user_id: int, server_id: int, reason: str) -> in
             result = await cursor.fetchone()
             return result[0] if result is not None else 0
 
+async def delete_user_from_blacklist(user_id: int, server_id: int) -> int: # To be checked and updated
+    """
+        This function will delete a user based on its ID from the blacklist.
+        :param user_id: The ID of the user that should be deleted from the blacklist.
+    """
+    async with aiosqlite.connect("../aider/database.db") as db:
+        await db.execute("DELETE FROM Blacklist WHERE user_id = ? AND server_id = ?", (user_id, server_id))
+        await db.commit()
+        rows = await db.execute("SELECT COUNT(*) FROM Blacklist")
+        async with rows as cursor:
+            result = await cursor.fetchone()
+            return result[0] if result is not None else 0
+
 async def parse_users_from_guild(users: dict, server_id: int, owner_id: int) -> int:
     """
+        This function will parse all users from a guild and add them to the database.
         :param users: dict of users to be added and their role to the database
         :param server_id: integer representing the server id
         :return: epoch time of the last user addition
@@ -101,6 +115,7 @@ async def parse_users_from_guild(users: dict, server_id: int, owner_id: int) -> 
 
 async def insert_users(users : dict, server_id : int, db):
     """
+        This function will insert users into the database.
         :param users: users that are part of the guild
         :param server_id: id of the guild we are parsing
         :param db: Database connection
