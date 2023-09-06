@@ -61,6 +61,28 @@ async def on_member_join(member):
     await db.parse_users_from_guild({member : member.role}, member.guild.id, member.guild.owner_id)
     await member.guild.system_channel.send(f"Tonto tontisimo que eres vete a la mierda <@{str(member.id)}>")
 
+async def on_guild_join(guild):
+    # This function will be called when the bot joins a new guild
+    embed = discord.Embed(
+        description=""""
+    🐒 Welcome to the server, {guild.name}! 🐒
+
+           __  __ ___  ____  ____  _  _ 
+          (  \/  ) __)(  _ \(  _ \/ )( \
+           )    ( \__ \ ) __/ ) __/) __ (
+          (_/\/\_)(___/(__)  (__)  (__)__)
+          
+    You can find me on:
+    GitHub: [Your GitHub URL]
+    LinkedIn: [Your LinkedIn URL]
+    
+    Feel free to reach out if you have any questions or need assistance!
+    """,
+        color=0x751C72
+    )
+    embed.set_image(url="https://assets.stickpng.com/images/5845cd430b2a3b54fdbaecf8.png")
+    print(f"Joined guild: {guild.name} (ID: {guild.id})")
+
 async def load_cogs():
   for file in os.listdir(f"./cogs"):
     if file.endswith(".py"):

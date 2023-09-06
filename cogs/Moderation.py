@@ -4,6 +4,7 @@ from discord.ext import commands
 from discord.ext.commands import Context
 
 import aider.db_parser as db_parser
+from exceptions import UserBlacklisted
 
 class Moderation(commands.Cog, name = "Moderation"):
     def __init__(self, bot):
@@ -34,7 +35,8 @@ class Moderation(commands.Cog, name = "Moderation"):
                     )
                     await member.kick(reason= reason)
                     await member.send(f"Bro did u know this boi {context.author} has kicked u? Just sayin' that he told me it was cuz this reason: {reason}")
-            except Exception:
+            except Exception as e:
+                print(f"{type(e).__name__}: {e}")
                 await context.send("There was an unexpected error")
         else:
             embed = discord.Embed(
@@ -57,7 +59,8 @@ class Moderation(commands.Cog, name = "Moderation"):
                     color=0xFCFC07
                 )
                 await member.edit(nick = nick)
-            except Exception:
+            except Exception as e:
+                print(f"{type(e).__name__}: {e}")
                 await context.send("There was an unexpected error")
         else:
             embed = discord.Embed(
@@ -75,9 +78,12 @@ class Moderation(commands.Cog, name = "Moderation"):
         user_id = user.id
 
         try:
-            await db_parser.add_user_to_blacklist(user_id = user_id, reason = reason, server_id = context.guild.id)
+            await db_parser.add_user_to_blacklist(user_id=user_id, reason=reason, server_id=context.guild.id)
             await context.send(f"Blacklisted <@{user.id}> for {reason}")
-        except Exception:
+        except UserBlacklisted:
+            await context.send("Chill out! You already blacklisted this user")
+        except Exception as e:
+            print(f"{type(e).__name__}: {e}")
             await context.send("There was an unexpected error")
 
     @commands.hybrid_command(name="unblacklist",
@@ -91,7 +97,8 @@ class Moderation(commands.Cog, name = "Moderation"):
         try:
             await db_parser.delete_user_from_blacklist(user_id=user_id, server_id=context.guild.id)
             await context.send(f"Unblacklisted <@{user.id}>")
-        except Exception:
+        except Exception as e:
+            print(f"{type(e).__name__}: {e}")
             await context.send("There was an unexpected error")
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
