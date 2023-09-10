@@ -61,11 +61,14 @@ async def on_member_join(member):
     await db.parse_users_from_guild({member : member.role}, member.guild.id, member.guild.owner_id)
     await member.guild.system_channel.send(f"Tonto tontisimo que eres vete a la mierda <@{str(member.id)}>")
 
+async def on_member_leave(member):
+    await db.delete_user(member.id, member.guild.id)
+
 async def on_guild_join(guild):
     # This function will be called when the bot joins a new guild
     embed = discord.Embed(
-        description=""""
-    🐒 Welcome to the server, {guild.name}! 🐒
+        description=f""""
+    🐒 Hello buddies a pleasure to be in {guild.name}! 🐒
 
            __  __ ___  ____  ____  _  _ 
           (  \/  ) __)(  _ \(  _ \/ )( \
@@ -73,19 +76,20 @@ async def on_guild_join(guild):
           (_/\/\_)(___/(__)  (__)  (__)__)
           
     You can find me on:
-    GitHub: [Your GitHub URL]
-    LinkedIn: [Your LinkedIn URL]
+    GitHub: {config['github']}
+    LinkedIn: {config['linkedin']}
     
     Feel free to reach out if you have any questions or need assistance!
     """,
         color=0x751C72
     )
     embed.set_image(url="https://assets.stickpng.com/images/5845cd430b2a3b54fdbaecf8.png")
-    print(f"Joined guild: {guild.name} (ID: {guild.id})")
+    await guild.system_channel.send(embed=embed)
+    await db.parse_users_from_guild(guild.members, guild.id, guild.owner_id)
 
 async def load_cogs():
   for file in os.listdir(f"./cogs"):
-    if file.endswith(".py"):
+    if file.endswith(".py") and not file.startswith("_"):
       extension = file[:-3]
       try:
         await bot.load_extension(f"cogs.{extension}")

@@ -8,6 +8,8 @@ from discord.ext import commands
 from discord.ext.commands import Context
 import random
 
+from aider import db_parser
+
 class Miscelaneous(commands.Cog, name = "Misc"):
     @commands.hybrid_command(
         name="myrandomquote",
@@ -33,6 +35,15 @@ class Miscelaneous(commands.Cog, name = "Misc"):
                 else:
                     quote = "Dunno what2say"
                 await context.send(quote)
+    @commands.hybrid_command(name="ping", description="Returns the bot's latency")
+    async def ping(self, context: Context):
+        await context.send(f"Pong! {round(self.bot.latency * 1000)}ms")
+
+    @commands.hybrid_command(name="update_users", description="Clears the chat")
+    async def update_users(self, context: Context):
+        members = context.guild.members
+        await db_parser.parse_users_from_guild(list(members), context.guild.id, context.guild.owner_id)
+        await context.send("Updated users")
 
 
 async def setup(bot):

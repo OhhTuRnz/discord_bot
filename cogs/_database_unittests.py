@@ -7,6 +7,7 @@ from aider.db_parser import add_user_to_blacklist, is_blacklisted, delete_user_f
 
 
 class Test(aiounittest.AsyncTestCase):
+    relative_route = "../"
     async def create_fake_users(self):
         users = []  # Create an empty list to store user objects
         names = ["Alex", "Gabriel", "Murlock"]
@@ -19,17 +20,15 @@ class Test(aiounittest.AsyncTestCase):
             user.id = ids[i]
             user.name = names[i]
             users.append(user)  # Add the user to the list
-
-        user_role_mapping = {users[i]: roles[i] for i in range(len(users))}
-        return user_role_mapping
+        return users
 
     async def test_blacklist_and_unblacklist(self):
-        await add_user_to_blacklist(134024815936929792, 123, "test")
+        await add_user_to_blacklist(134024815936929792, 123, "test", self.relative_route)
         print("Checking if user is blacklisted ...", end=" ")
         self.assertTrue(await self.check_blacklisted())
         print("Correct")
 
-        await delete_user_from_blacklist(134024815936929792, 123)
+        await delete_user_from_blacklist(134024815936929792, 123, self.relative_route)
         print("Checking if user is unblacklisted ...", end=" ")
         self.assertFalse(await self.check_blacklisted())
         print("Correct")
@@ -49,27 +48,27 @@ class Test(aiounittest.AsyncTestCase):
         print("Correct")
 
     async def check_blacklisted(self):
-        return await is_blacklisted(134024815936929792, 123)
+        return await is_blacklisted(134024815936929792, 123, self.relative_route)
 
     async def check_unique_user_parser(self):
         user = Mock(spec=discord.User)
         user.id = 123
         user.name = "Alex"
-        await parse_users_from_guild({user: "Tonto"}, 123, 123)
+        await parse_users_from_guild([user], 123, 123, self.relative_route)
 
     async def check_unique_delete_user(self):
         user = Mock(spec=discord.User)
         user.id = 123
         user.name = "Alex"
-        await delete_users_from_guild({user: "Tonto"}, 123)
+        await delete_users_from_guild([user], 123, self.relative_route)
 
     async def check_multiple_user_parser(self):
         user_role_mapping = await self.create_fake_users()
-        await parse_users_from_guild(user_role_mapping, 123, 123)
+        await parse_users_from_guild(user_role_mapping, 123, 123, self.relative_route)
 
     async def check_multiple_delete_user(self):
         user_role_mapping = await self.create_fake_users()
-        await delete_users_from_guild(user_role_mapping, 123)
+        await delete_users_from_guild(user_role_mapping, 123, self.relative_route)
 
     async def create_fake_users(self):
         users = []  # Create an empty list to store user objects
