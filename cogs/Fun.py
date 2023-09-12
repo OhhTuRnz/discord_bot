@@ -105,7 +105,7 @@ class Fun(commands.Cog, name="fun"):
         """
         # This will prevent your bot from stopping everything when doing a web request - see: https://discordpy.readthedocs.io/en/stable/faq.html#how-do-i-make-a-web-request
         async with aiohttp.ClientSession() as session:
-            async with session.get("https://uselessfacts.jsph.pl/random.json?language=en") as request:
+            async with session.get("https://uselessfacts.jsph.pl/random.json?language=en", ssl=False) as request:
                 if request.status == 200:
                     data = await request.json()
                     embed = discord.Embed(

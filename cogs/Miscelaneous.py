@@ -27,17 +27,18 @@ class Miscelaneous(commands.Cog, name = "Misc"):
     )
     async def get_internet_quotes(self, context: Context):
         async with aiohttp.ClientSession() as session:
-            async with session.get("https://zenquotes.io/api/random") as request:
+            async with session.get("https://zenquotes.io/api/random", ssl=False) as request:
                 if request.status == 200:
                     data = await request.json()
                     quote = f"{data[0]['q']} -{data[0]['a']}"
                     print(quote)
                 else:
                     quote = "Dunno what2say"
+                await session.close()
                 await context.send(quote)
     @commands.hybrid_command(name="ping", description="Returns the bot's latency")
     async def ping(self, context: Context):
-        await context.send(f"Pong! {round(self.bot.latency * 1000)}ms")
+        await context.send(f"Pong!")
 
     @commands.hybrid_command(name="update_users", description="Clears the chat")
     async def update_users(self, context: Context):
