@@ -1,0 +1,7 @@
+aiohttp~=3.8.5
+discord~=2.3.2
+pygame~=2.5.1
+requests~=2.31.0
+aiounittest~=1.4.2
+aiosqlite~=0.19.0
+flask~=2.3.3
