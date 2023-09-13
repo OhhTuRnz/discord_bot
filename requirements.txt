@@ -5,3 +5,5 @@ requests~=2.31.0
 aiounittest~=1.4.2
 aiosqlite~=0.19.0
 flask~=2.3.3
+WaveLinkCord~=2.5.1
+wavelink~=2.6.4

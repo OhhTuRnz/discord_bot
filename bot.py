@@ -6,17 +6,16 @@ import random
 import sqlite3
 import sys
 from contextlib import closing
-
-from discord import Member
 import discord
-from discord import Interaction
-from discord.ext import commands, tasks
+
 from discord.ext.commands import Bot, Context
 
 import aiosqlite
 
 import exceptions
 import keep_alive
+
+import wavelink
 
 from aider import db_parser as db
 
@@ -34,6 +33,8 @@ class MyBot(Bot):
         super().__init__(command_prefix = config['prefix'], intents = intents, application_id = application_id)
     async def setup_hook(self):
         await self.tree.sync()
+        node: wavelink.Node = wavelink.Node(uri='http://127.0.0.1:2333', password='youshallnotpass')
+        await wavelink.NodePool.connect(client=self, nodes=[node])
 bot = MyBot()
 
 #bot.config = config
@@ -46,9 +47,9 @@ bot = MyBot()
 #        await db.commit()
 @bot.event
 async def on_ready():
-  print(f"Logged in as {bot.user.name}")
-  print(f"discord API version: {discord.__version__}")
-  print("Enjoy your bot!")
+    print(f"Logged in as {bot.user.name}")
+    print(f"discord API version: {discord.__version__}")
+    print("Enjoy your bot!")
 
 @bot.event
 async def on_message(message: discord.Message):
@@ -102,4 +103,7 @@ try:
     bot.run(config['token'])
 except Exception as e:
     print(f"//!\\\\ Error loading the bot. Is your token valid? {type(e).__name__} : {e}")
+
+async def on_wavelink_node_ready(node:wavelink.Node):
+    print(f"Wavelink node '{node.identifier}' ready.")
 
