@@ -34,17 +34,17 @@ class AuditLog(commands.Cog, name = "AuditLog"):
 
     @commands.hybrid_command(
         name="get_last_kicks",
-        description="The bot shows the last 10 logs from the audit log"
+        description="The bot shows the last 10 kicks from the audit log"
     )
     async def get_last_kicks(self, context: Context):
         logs = []
         async for log in context.guild.audit_logs(limit=5, action=discord.AuditLogAction.kick):
             logs.append(log)
         embed = discord.Embed(
-            description="Last logs from the audit log",
+            description="Last kicks from the audit log",
             color=0xD75BF4
         )
-        embed.add_field(name="Logs:", value="\n".join(f"<@{log.user.id}> kicked <@{log.target.id}>" for log in logs))
+        embed.add_field(name="Kicks:", value="\n".join(f"<@{log.user.id}> kicked <@{log.target.id}>" for log in logs))
         await context.send(embed=embed)
 
     @commands.hybrid_command(
@@ -56,7 +56,7 @@ class AuditLog(commands.Cog, name = "AuditLog"):
         async for log in context.guild.audit_logs(limit=5, action=discord.AuditLogAction.ban):
             logs.append(log)
         embed = discord.Embed(
-            description="Last logs from the audit log",
+            description="Last bans from the audit log",
             color=0xD75BF4
         )
         embed.add_field(name="Logs:", value="\n".join(f"<@{log.user.id}> banned <@{log.target.id}>" for log in logs))
@@ -64,17 +64,17 @@ class AuditLog(commands.Cog, name = "AuditLog"):
 
     @commands.hybrid_command(
         name="get_last_disconnect",
-        description="The bot shows the last 10 mutes from the audit log"
+        description="The bot shows the last 10 disconnections from the audit log"
     )
     async def get_last_disconnect(self, context: Context):
         logs = []
         async for log in context.guild.audit_logs(limit=5, action=discord.AuditLogAction.member_disconnect):
             logs.append(log)
         embed = discord.Embed(
-            description="Last logs from the audit log",
+            description="Last disconnections from the audit log",
             color=0xD75BF4
         )
-        embed.add_field(name="Logs:", value="\n".join(f"<@{log.user.id}> disconnected <@{log.target.id}>" for log in logs))
+        embed.add_field(name="Discconects:", value="\n".join(f"<@{log.user.id}> disconnected <@{log.target.id}>" for log in logs))
         await context.send(embed=embed)
 
 async def setup(bot):
