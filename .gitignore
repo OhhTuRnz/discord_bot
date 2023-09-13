@@ -1,4 +1,5 @@
 /config.json
 _pycache_/
 *.db
-.idea/
+workspace.xml
+tasks.xml
