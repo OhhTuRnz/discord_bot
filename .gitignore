@@ -3,3 +3,4 @@ _pycache_/
 *.db
 workspace.xml
 tasks.xml
+jdk*/
