@@ -11,11 +11,10 @@ import aiohttp
 import discord
 import wavelink
 
+URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 LYRICS_URL = "https://some-random-api.ml/lyrics?title="
 HZ_BANDS = (20, 40, 63, 100, 150, 250, 400, 450, 630, 1000, 1600, 2500, 4000, 10000, 16000)
 TIME_REGEX = r"([0-9]{1,2})[:ms](([0-9]{1,2})s?)?"
-URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
-SOUNDCLOUD_REGEX = r".*soundcloud\.com.*"
 OPTIONS = {
     "1️⃣": 0,
     "2⃣": 1,
@@ -79,46 +78,123 @@ class EQGainOutOfBounds(commands.CommandError):
 class InvalidTimeString(commands.CommandError):
     pass
 
-class music_utils():
-
+class Queue(wavelink.Queue):
     def __init__(self):
-        pass
-    async def get_tracks(search):
-        if(re.match(SOUNDCLOUD_REGEX, search)):
-            print("tonto")
-            return await wavelink.SoundCloudTrack.search(search)
+        super().__init__()
+        self.position = 0
+        self.repeat_mode = RepeatMode.NONE
+
+    def set_repeat_mode(self, mode):
+        self.repeat_mode = RepeatMode[mode.upper()]
+
+
+class Player(wavelink.Player):
+    def __init__(self):
+        super().__init__()
+        self.queue = Queue()
+
+    async def connect(self, ctx, channel=None):
+        if self.is_connected():
+            raise AlreadyConnectedToChannel
+        elif(channel := getattr(ctx.author.voice, "channel", channel)) is None:
+            raise NoVoiceChannel
+        await super().connect(ctx, channel)
+        return channel
+
+    async def teardown(self):
+        try:
+            await self.destroy()
+        except KeyError:
+            pass
+
+    async def add_tracks(self, ctx, tracks):
+        if not tracks:
+            raise NoTracksFound
+
+        if isinstance(tracks, wavelink.TrackPlaylist):
+            self.queue.__add__(*tracks.tracks)
+        elif len(tracks) == 1:
+            self.queue.__add__(tracks[0])
+            await ctx.send(f"Added {tracks[0].title} to the queue.")
         else:
-            print("tontito")
-            return await wavelink.YouTubeTrack.search(search)
+            if (track := await self.choose_track(ctx, tracks)) is not None:
+                self.queue.__add__(track)
+                await ctx.send(f"Added {track.title} to the queue.")
+
+        if not self.is_playing and not self.queue.is_empty:
+            await self.start_playback()
+
+    async def choose_track(self, ctx, tracks):
+        def _check(r, u):
+            return (
+                    r.emoji in OPTIONS.keys()
+                    and u == ctx.author
+                    and r.message.id == msg.id
+            )
+
+        embed = discord.Embed(
+            title="Choose a song",
+            description=(
+                "\n".join(
+                    f"**{i + 1}.** {t.title} ({t.length // 60000}:{str(t.length % 60).zfill(2)})"
+                    for i, t in enumerate(tracks[:5])
+                )
+            ),
+            colour=ctx.author.colour,
+            timestamp=dt.datetime.utcnow()
+        )
+        embed.set_author(name="Query Results")
+        embed.set_footer(text=f"Invoked by {ctx.author.display_name}", icon_url=ctx.author.avatar_url)
+
+        msg = await ctx.send(embed=embed)
+        for emoji in list(OPTIONS.keys())[:min(len(tracks), len(OPTIONS))]:
+            await msg.add_reaction(emoji)
+
+        try:
+            reaction, _ = await self.bot.wait_for("reaction_add", timeout=60.0, check=_check)
+        except asyncio.TimeoutError:
+            await msg.delete()
+            await ctx.message.delete()
+        else:
+            await msg.delete()
+            return tracks[OPTIONS[reaction.emoji]]
+
+    async def start_playback(self):
+        await self.play(await self.queue.get())
+
+    async def advance(self):
+        try:
+            if (track := self.queue.pop()) is not None:
+                await self.play(track)
+        except QueueIsEmpty:
+            pass
+
+    async def repeat_track(self):
+        await self.play(await self.queue.get())
+
+    async def get_tracks(self, search: str):
+        if not re.match(URL_REGEX, search) or search.__contains__("youtube.com"):
+            tracks = await wavelink.YouTubeTrack.search(search)
+        elif(re.match(URL_REGEX, search) and search.__contains__("soundcloud.com")):
+            tracks = await wavelink.SoundCloudTrack.search(search)
         return tracks
 
 
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.players = {}
 
     #@commands.Cog.listener()
-    async def on_voice_state_update(self, member : discord.Member, before, after):
+    async def on_voice_state_update(self, member, before, after):
         if not member.bot and after.channel is None:
             if not [m for m in before.channel.members if not m.bot]:
-                await member(member.guild).teardown()
+                await self.get_player(member.guild).teardown()
     async def on_player_stop(self, node, payload):
         if payload.player.queue.repeat_mode == RepeatMode.ONE:
             await payload.player.repeat_track()
         else:
             await payload.player.advance()
-
-    async def on_wavelink_track_start(self, payload: wavelink.TrackEventPayload):
-        embed = discord.Embed(
-            title="Now playing",
-            description=f"[{payload.player.queue.current.title}]({payload.player.queue.current.uri}) [{payload.player.queue.current.author}]",
-            colour=discord.Colour.blurple(),
-            timestamp=dt.datetime.utcnow()
-        )
-        embed.set_author(name="Playback Information")
-        embed.set_footer(text=f"Requested by {payload.player.queue.current.requester.display_name}", icon_url=payload.player.queue.current.requester.avatar_url)
-        await payload.player.queue.current.channel.send(embed=embed)
-
 
     async def cog_check(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
@@ -127,10 +203,17 @@ class Music(commands.Cog):
 
         return True
 
+    def get_player(self, obj):
+        if isinstance(obj, commands.Context):
+            return self.players[obj.guild.id]
+        elif isinstance(obj, discord.Guild):
+            return self.players[obj.id]
+
     @commands.hybrid_command(name="connect",
                              description="connects to voicechannel")
     async def connect_command(self, ctx, *, channel: t.Optional[discord.VoiceChannel]):
-        vc: wavelink.player = await ctx.author.voice.channel.connect(cls=wavelink.player)
+        vc: Player = await ctx.author.voice.channel.connect(cls=Player)
+        self.players[vc.guild.id] = vc
         channel = await vc.connect(ctx, channel)
         await ctx.send(f"Connected to {channel.name}.")
 
@@ -144,42 +227,41 @@ class Music(commands.Cog):
     @commands.hybrid_command(name="disconnect",
                              description="Disconnect from channel")
     async def disconnect_command(self, ctx):
-        vc: wavelink.player = ctx.voice_client
+        vc: Player = ctx.voice_client
+        self.players.pop(ctx.guild.id)
         await vc.disconnect()
         await ctx.send("Disconnected.")
 
     @commands.hybrid_command(name="play2", description="plays music")
-    async def play(self, ctx: commands.Context, *, search: str) -> None:
+    async def play(ctx: commands.Context, *, search: str) -> None:
         """Simple play command."""
-        if not ctx.voice_client:
-            vc: wavelink.player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
-        else:
-            vc: wavelink.player = ctx.voice_client
 
-        search = search.strip("<>")
-        if not re.match(URL_REGEX, search):
-            search = f"ytsearch:{search}"
+        if not ctx.voice_client:
+            vc: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
+        else:
+            vc: wavelink.Player = ctx.voice_client
+
         tracks = await wavelink.YouTubeTrack.search(search)
-        print(tracks)
         if not tracks:
             await ctx.send(f'No tracks found with query: `{search}`')
             return
-        await ctx.send(f"Playing")
-        await vc.play(tracks)
+
+        track = tracks[0]
+        await vc.play(track)
 
     @commands.hybrid_command(name="play",
                              description="starts playing music")
     async def play_command(self, ctx, *, query: t.Optional[str]):
-        if not ctx.voice_client:
-            vc: wavelink.player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
-        else:
-            vc: wavelink.player = ctx.voice_client
+        vc: Player = self.players[ctx.guild.id]
+
+        if not vc.is_connected:
+            await vc.connect(ctx)
 
         if query is None:
             if vc.queue.is_empty:
                 raise QueueIsEmpty
 
-            await vc.resume()
+            await vc.set_pause(False)
             await ctx.send("Playback resumed.")
 
         else:
@@ -187,9 +269,7 @@ class Music(commands.Cog):
             if not re.match(URL_REGEX, query):
                 query = f"ytsearch:{query}"
 
-            if(vc.queue.is_empty):
-                await vc.play()
-            await vc.add_tracks(await Player.get_tracks(query))
+            await vc.__add__(ctx, await Player.get_tracks(query))
 
     @play_command.error
     async def play_command_error(self, ctx, exc):

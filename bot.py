@@ -104,6 +104,8 @@ try:
 except Exception as e:
     print(f"//!\\\\ Error loading the bot. Is your token valid? {type(e).__name__} : {e}")
 
+"""
 async def on_wavelink_node_ready(node:wavelink.Node):
     print(f"Wavelink node '{node.identifier}' ready.")
+"""
 
