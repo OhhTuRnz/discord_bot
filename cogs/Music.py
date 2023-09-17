@@ -83,30 +83,27 @@ class music_utils():
 
     def __init__(self):
         pass
-    async def get_tracks(search):
+    async def get_tracks(search) -> list:
+        search = search.strip("<>")
+        if not re.match(URL_REGEX, search):
+            search = f"ytsearch:{search}"
         if(re.match(SOUNDCLOUD_REGEX, search)):
-            print("tonto")
             return await wavelink.SoundCloudTrack.search(search)
         else:
-            print("tontito")
             return await wavelink.YouTubeTrack.search(search)
-        return tracks
 
+class Player(wavelink.Player):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.autoplay = True
 
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    #@commands.Cog.listener()
-    async def on_voice_state_update(self, member : discord.Member, before, after):
-        if not member.bot and after.channel is None:
-            if not [m for m in before.channel.members if not m.bot]:
-                await member(member.guild).teardown()
-    async def on_player_stop(self, node, payload):
-        if payload.player.queue.repeat_mode == RepeatMode.ONE:
-            await payload.player.repeat_track()
-        else:
-            await payload.player.advance()
+
+    async def on_player_stop(self, ctx: commands.Context, payload: wavelink.TrackEventPayload):
+        await self.next_command(ctx)
 
     async def on_wavelink_track_start(self, payload: wavelink.TrackEventPayload):
         embed = discord.Embed(
@@ -130,7 +127,7 @@ class Music(commands.Cog):
     @commands.hybrid_command(name="connect",
                              description="connects to voicechannel")
     async def connect_command(self, ctx, *, channel: t.Optional[discord.VoiceChannel]):
-        vc: wavelink.player = await ctx.author.voice.channel.connect(cls=wavelink.player)
+        vc: Player = await ctx.author.voice.channel.connect(cls=Player)
         channel = await vc.connect(ctx, channel)
         await ctx.send(f"Connected to {channel.name}.")
 
@@ -148,50 +145,35 @@ class Music(commands.Cog):
         await vc.disconnect()
         await ctx.send("Disconnected.")
 
-    @commands.hybrid_command(name="play2", description="plays music")
+    @commands.hybrid_command(name="play", description="plays music")
     async def play(self, ctx: commands.Context, *, search: str) -> None:
         """Simple play command."""
+        if not ctx.author.voice.channel:
+            raise NoVoiceChannel
         if not ctx.voice_client:
-            vc: wavelink.player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
+            vc: Player = await ctx.author.voice.channel.connect(cls=Player)
         else:
-            vc: wavelink.player = ctx.voice_client
+            vc: Player = ctx.voice_client
 
-        search = search.strip("<>")
-        if not re.match(URL_REGEX, search):
-            search = f"ytsearch:{search}"
-        tracks = await wavelink.YouTubeTrack.search(search)
-        print(tracks)
-        if not tracks:
-            await ctx.send(f'No tracks found with query: `{search}`')
-            return
-        await ctx.send(f"Playing")
-        await vc.play(tracks)
-
-    @commands.hybrid_command(name="play",
-                             description="starts playing music")
-    async def play_command(self, ctx, *, query: t.Optional[str]):
-        if not ctx.voice_client:
-            vc: wavelink.player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
-        else:
-            vc: wavelink.player = ctx.voice_client
-
-        if query is None:
+        if search is None:
             if vc.queue.is_empty:
                 raise QueueIsEmpty
 
             await vc.resume()
             await ctx.send("Playback resumed.")
 
+        tracks = await music_utils.get_tracks(search)
+        track = tracks[0]
+        if not track:
+            await ctx.send(f'No tracks found with query: `{search}`')
+            return
+        await vc.queue.put_wait(track)
+        if not vc.is_playing():
+            await vc.play(vc.queue.get(), populate = True)
+            await ctx.send(f"Playing: {track.title}")
         else:
-            query = query.strip("<>")
-            if not re.match(URL_REGEX, query):
-                query = f"ytsearch:{query}"
-
-            if(vc.queue.is_empty):
-                await vc.play()
-            await vc.add_tracks(await Player.get_tracks(query))
-
-    @play_command.error
+            await ctx.send(f"Added {track.title} to the queue. There are {vc.queue.count} songs in the queue.")
+    @play.error
     async def play_command_error(self, ctx, exc):
         if isinstance(exc, QueueIsEmpty):
             await ctx.send("No songs to play as the queue is empty.")
@@ -222,12 +204,13 @@ class Music(commands.Cog):
 
     @commands.command(name="next", aliases=["skip"])
     async def next_command(self, ctx):
-        player = self.get_player(ctx)
+        vc: wavelink.player = ctx.voice_client
 
-        if not player.queue.upcoming:
+        if not vc.queue.upcoming:
             raise NoMoreTracks
 
-        await player.stop()
+        await vc.stop()
+        await vc.play(vc.queue.get(), populate = True)
         await ctx.send("Playing next track in queue.")
 
     @next_command.error
