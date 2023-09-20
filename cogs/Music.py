@@ -178,36 +178,33 @@ class Music(commands.Cog):
         if isinstance(exc, QueueIsEmpty):
             await ctx.send("No songs to play as the queue is empty.")
         elif isinstance(exc, NoVoiceChannel):
-            await ctx.send("No suitable voice channel was provided.")
+            await ctx.send("You are not in a voice channel!.")
 
-    @commands.command(name="pause")
+    @commands.hybrid_command(name="pause")
     async def pause_command(self, ctx):
-        player = self.get_player(ctx)
+        if not ctx.author.voice.channel:
+            raise NoVoiceChannel
+        if not ctx.voice_client:
+            vc: Player = await ctx.author.voice.channel.connect(cls=Player)
+        else:
+            vc: Player = ctx.voice_client
 
-        if player.is_paused:
+        if not vc.is_paused():
+            await vc.pause()
+            await ctx.send("Playback paused.")
+        else:
             raise PlayerIsAlreadyPaused
-
-        await player.set_pause(True)
-        await ctx.send("Playback paused.")
 
     @pause_command.error
     async def pause_command_error(self, ctx, exc):
         if isinstance(exc, PlayerIsAlreadyPaused):
             await ctx.send("Already paused.")
+        if isinstance(exc, NoVoiceChannel):
+            await ctx.send("You are not in a voice channel!.")
 
-    @commands.command(name="stop")
-    async def stop_command(self, ctx):
-        player = self.get_player(ctx)
-        player.queue.empty()
-        await player.stop()
-        await ctx.send("Playback stopped.")
-
-    @commands.command(name="next", aliases=["skip"])
+    @commands.hybrid_command(name="next", aliases=["skip"])
     async def next_command(self, ctx):
         vc: wavelink.player = ctx.voice_client
-
-        if not vc.queue.upcoming:
-            raise NoMoreTracks
 
         await vc.stop()
         await vc.play(vc.queue.get(), populate = True)
@@ -215,20 +212,23 @@ class Music(commands.Cog):
 
     @next_command.error
     async def next_command_error(self, ctx, exc):
-        if isinstance(exc, QueueIsEmpty):
-            await ctx.send("This could not be executed as the queue is currently empty.")
-        elif isinstance(exc, NoMoreTracks):
-            await ctx.send("There are no more tracks in the queue.")
+        if isinstance(exc, wavelink.QueueEmpty):
+            await ctx.send("There are no tracks in the queue.")
 
-    @commands.command(name="previous")
+    @commands.hybrid_command(name="previous")
     async def previous_command(self, ctx):
-        player = self.get_player(ctx)
+        if not ctx.author.voice.channel:
+            raise NoVoiceChannel
+        if not ctx.voice_client:
+            vc: Player = await ctx.author.voice.channel.connect(cls=Player)
+        else:
+            vc: Player = ctx.voice_client
 
-        if not player.queue.history:
+        if not vc.queue.history:
             raise NoPreviousTracks
 
-        player.queue.position -= 2
-        await player.stop()
+        await vc.stop()
+        await vc.play(vc.queue[vc.queue.find_position(vc.queue.get()) - 1], populate = True)
         await ctx.send("Playing previous track in queue.")
 
     @previous_command.error
@@ -237,11 +237,13 @@ class Music(commands.Cog):
             await ctx.send("This could not be executed as the queue is currently empty.")
         elif isinstance(exc, NoPreviousTracks):
             await ctx.send("There are no previous tracks in the queue.")
+        elif isinstance(exc, NoVoiceChannel):
+            await ctx.send("You are not in a voice channel!.")
 
     @commands.command(name="shuffle")
     async def shuffle_command(self, ctx):
-        player = self.get_player(ctx)
-        player.queue.shuffle()
+        vc: wavelink.player = ctx.voice_client
+        vc.queue.shuffle()
         await ctx.send("Queue shuffled.")
 
     @shuffle_command.error
