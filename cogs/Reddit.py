@@ -3,7 +3,7 @@ import asyncio
 import discord
 from discord.ext import commands
 
-import asyncpraw as praw
+import praw
 import configparser
 import urllib.request
 
@@ -13,9 +13,9 @@ from urllib.error import HTTPError
 
 class RedditClient():
     def __init__(self, _id, _secret):
-        self.id = _id,
-        self.secret = _secret,
-        self.user_agent = "discord-collector"
+        self.id = 'n1SUZsxjiYpvxd3TovaFgA'
+        self.secret = 'uB8FyHX2aUd951uElQXNSToSYjF0FQ'
+        self.user_agent = "a"
         self.urls = []
 
     def save_list(self,img_url_list):
@@ -36,8 +36,10 @@ class RedditClient():
     async def get_img_urls(self, sub, li):
         try:
             reddit = praw.Reddit(client_id=self.id, client_secret=self.secret, user_agent=self.user_agent)
-            subreddit = await reddit.subreddit(sub)
-            async for submission in subreddit.hot(limit=li):
+            print("Exito")
+            reddit.read_only = True
+            subreddit = reddit.subreddit(sub)
+            for submission in subreddit.hot(limit=li):
                 self.urls.append(submission.url)
             return self.urls
 
@@ -100,12 +102,9 @@ class Reddit(commands.Cog):
         img_url_list = await self.redditClient.get_img_urls(subreddit, limit)
         if img_url_list == 0:
             await context.send("There was an error with the subreddit")
-            return
-        await context.send("Here you go\n {}".format(img_url_list[0]))
-
-
-
-client = RedditClient(_id="n1SUZsxjiYpvxd3TovaFgA", _secret="uB8FyHX2aUd951uElQXNSToSYjF0FQ")
-asyncio.run(client.get_img_urls("r/DankMemes", 3))
+        if len(img_url_list) == 0:
+            await context.send("Couldn't find any!")
+        for url in img_url_list:
+            await context.send("Here you go\n {}".format(url))
 async def setup(bot):
     await bot.add_cog(Reddit(bot))
