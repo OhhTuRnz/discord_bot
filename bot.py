@@ -35,7 +35,7 @@ class MyBot(Bot):
     async def setup_hook(self):
         await self.tree.sync()
         node: wavelink.Node = wavelink.Node(uri='http://127.0.0.1:2333', password='youshallnotpass')
-        #await wavelink.NodePool.connect(client=self, nodes=[node])
+        await wavelink.NodePool.connect(client=self, nodes=[node])
 bot = MyBot()
 
 #bot.config = config
