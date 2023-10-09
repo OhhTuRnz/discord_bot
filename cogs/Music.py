@@ -240,9 +240,18 @@ class Music(commands.Cog):
         elif isinstance(exc, NoVoiceChannel):
             await ctx.send("You are not in a voice channel!.")
 
-    @commands.command(name="shuffle")
+    @commands.hybrid_command(name="shuffle")
     async def shuffle_command(self, ctx):
-        vc: wavelink.player = ctx.voice_client
+        if not ctx.author.voice.channel:
+            raise NoVoiceChannel
+        if not ctx.voice_client:
+            vc: Player = await ctx.author.voice.channel.connect(cls=Player)
+        else:
+            vc: Player = ctx.voice_client
+
+        if vc.queue.is_empty:
+            raise QueueIsEmpty
+
         vc.queue.shuffle()
         await ctx.send("Queue shuffled.")
 
