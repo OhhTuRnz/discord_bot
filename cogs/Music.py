@@ -103,7 +103,6 @@ class Music(commands.Cog):
 
 
     async def on_player_stop(self, ctx: commands.Context, payload: wavelink.TrackEventPayload):
-        print("Somethinb")
         await self.next_command(ctx)
 
     async def on_wavelink_track_start(self, payload: wavelink.TrackEventPayload):
@@ -156,14 +155,8 @@ class Music(commands.Cog):
         else:
             vc: Player = ctx.voice_client
 
-        if search is None:
-            if vc.queue.is_empty:
-                raise QueueIsEmpty
-
-            await vc.resume()
-            await ctx.send("Playback resumed.")
-
         tracks = await music_utils.get_tracks(search)
+        print(tracks)
         track = tracks[0]
         if not track:
             await ctx.send(f'No tracks found with query: `{search}`')
@@ -227,6 +220,7 @@ class Music(commands.Cog):
 
     @commands.hybrid_command(name="next", aliases=["skip"], description="skips next song in the queue, if autoplay is activated it will play a song from the autoplay list")
     async def next_command(self, ctx):
+        print("next command called")
         vc: wavelink.player = ctx.voice_client
 
         #if vc.queue.is_empty:
