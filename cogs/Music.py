@@ -103,6 +103,7 @@ class Music(commands.Cog):
 
 
     async def on_player_stop(self, ctx: commands.Context, payload: wavelink.TrackEventPayload):
+        print("Somethinb")
         await self.next_command(ctx)
 
     async def on_wavelink_track_start(self, payload: wavelink.TrackEventPayload):
@@ -180,7 +181,29 @@ class Music(commands.Cog):
         elif isinstance(exc, NoVoiceChannel):
             await ctx.send("You are not in a voice channel!.")
 
-    @commands.hybrid_command(name="pause")
+    @commands.hybrid_command(name="resume", description="resumes music")
+    async def resume_command(self, ctx):
+        if not ctx.author.voice.channel:
+            raise NoVoiceChannel
+        if not ctx.voice_client:
+            vc: Player = await ctx.author.voice.channel.connect(cls=Player)
+        else:
+            vc: Player = ctx.voice_client
+
+        if vc.queue.is_empty:
+            raise QueueIsEmpty
+
+        await vc.resume()
+        await ctx.send("Playback resumed.")
+
+    @resume_command.error
+    async def resume_command_error(self, ctx, exc):
+        if isinstance(exc, QueueIsEmpty):
+            await ctx.send("The queue is currently empty.")
+        elif isinstance(exc, NoVoiceChannel):
+            await ctx.send("You are not in a voice channel!.")
+
+    @commands.hybrid_command(name="pause", description="pauses music")
     async def pause_command(self, ctx):
         if not ctx.author.voice.channel:
             raise NoVoiceChannel
@@ -202,20 +225,27 @@ class Music(commands.Cog):
         if isinstance(exc, NoVoiceChannel):
             await ctx.send("You are not in a voice channel!.")
 
-    @commands.hybrid_command(name="next", aliases=["skip"])
+    @commands.hybrid_command(name="next", aliases=["skip"], description="skips next song in the queue, if autoplay is activated it will play a song from the autoplay list")
     async def next_command(self, ctx):
         vc: wavelink.player = ctx.voice_client
 
+        #if vc.queue.is_empty:
+        #    if(self.autoplay == True):
+        #        await ctx.send("Now playing enhanced songs from autoplay")
+        #    else:
+        #        raise QueueIsEmpty
         await vc.stop()
-        await vc.play(vc.queue.get(), populate = True)
-        await ctx.send("Playing next track in queue.")
+        next = vc.queue.get()
+        print("title is" + next.title)
+        await vc.play(next, populate = True)
+        await ctx.send("Playing " + next.title + " next.")
 
     @next_command.error
     async def next_command_error(self, ctx, exc):
         if isinstance(exc, wavelink.QueueEmpty):
             await ctx.send("There are no tracks in the queue.")
 
-    @commands.hybrid_command(name="previous")
+    @commands.hybrid_command(name="previous", aliases=["prev"], description="plays previous song in the queue")
     async def previous_command(self, ctx):
         if not ctx.author.voice.channel:
             raise NoVoiceChannel
